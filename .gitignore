@@ -1,0 +1,28 @@
+# Python кэш и байт-код
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Виртуальное окружение (uv по умолчанию создает .venv)
+.venv/
+env/
+venv/
+
+# Кэш uv и инструменты линтинга/тестирования
+.uv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Файлы конфигурации и секреты (переменные окружения)
+.env
+.env.*
+!.env.example
+
+# Базы данных (если используется локальный SQLite для разработки)
+*.sqlite3
+*.sqlite3-journal
+
+# Настройки IDE (VS Code / PyCharm)
+.vscode/
+.idea/
