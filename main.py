@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.exceptions import HTTPException
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 
 
 
@@ -10,9 +10,62 @@ app = FastAPI()
 BALANCE = {}
 
 class OperationRequest(BaseModel):
-    wallet_name: str
+    wallet_name: str = Field(..., max_length=120)
     amount: float
-    description: str | None = None
+    description: str | None = Field(None, max_length=255)
+
+    @field_validator("amount")
+    def amount_must_be_positive(cls, value: float) -> float:
+        """
+        валидатор для проверки что сумма положительная
+        - проверяем что число положительное и возвращаем
+        - иначе выбрасываем ошибку ValueError
+        """
+        if value <= 0:
+            raise ValueError("Amount must be positive")
+        return value
+
+    @field_validator("wallet_name")
+    def wallet_name_validator(cls, value: str) -> str:
+        """
+        валидатор для проверки имени кошелька
+        - удаляем пробелы вначале и в конце строки
+        - если строка пустая выбрасываем ошибку ValueError
+        - иначе возврощаем результат
+        """
+        value = value.strip()
+        if not value:
+            raise ValueError("Wallet name can't be empty")
+        return value
+
+
+
+class CreateWalletRequest(BaseModel):
+    name: str = Field(..., max_length=120)
+    initial_balance: float = 0
+
+    @field_validator("initial_balance")
+    def balance_not_negative(cls, value: float) -> float:
+        """
+        валидатор для проверки что сумма положительная
+        - проверяем что число положительное и возвращаем
+        """
+        if value < 0:
+            raise ValueError("Balance can't be negative")
+        return value
+
+    @field_validator("name")
+    def name_validator(cls, value: str) -> str:
+        """
+        валидатор для проверки имени кошелька
+        - удаляем пробелы вначале и в конце строки
+        - если строка пустая выбрасываем ошибку ValueError
+        - иначе возврощаем результат
+        """
+        value = value.strip()
+        if not value:
+            raise ValueError("Name can't be empty")
+        return value 
 
 
 
@@ -32,21 +85,21 @@ def get_balance(wallet_name: str | None = None):
 
 
 
-@app.post("/wallets/{name}")
-def crate_wallet(name: str, initial_balance: float = 0):
+@app.post("/wallets")
+def crate_wallet(wallet: CreateWalletRequest):
     # Проверяем существует ли такой кошелек
-    if name in BALANCE:
+    if wallet.name in BALANCE:
         raise HTTPException(
             status_code=400,
-            detail=f"wallet '{name}' already exists"
+            detail=f"wallet '{wallet.name}' already exists"
         )
     # Создаем новый кошелек с начальным балансом
-    BALANCE[name] = initial_balance
+    BALANCE[wallet.name] = wallet.initial_balance
     # Возвращаем информацию о кошельке
     return {
-        "message": f"Wallet '{name}' created",
-        "wallet": name,
-        "balance": BALANCE[name]
+        "message": f"Wallet '{wallet.name}' created",
+        "wallet": wallet.name,
+        "balance": BALANCE[wallet.name]
     }
 
 
@@ -58,12 +111,6 @@ def add_income(data: OperationRequest):
         raise HTTPException(
             status_code=404,
             detail=f"Wallet '{data.wallet_name}', not found"
-        )
-    # Проверяем что сумма положительная
-    if data.amount <= 0:
-        raise HTTPException(
-            status_code=400,
-            detail="Amoun must be positive"
         )
     # Добавляем доход к балансу кошелька
     BALANCE[data.wallet_name] += data.amount
@@ -85,12 +132,6 @@ def add_expense(data: OperationRequest):
         raise HTTPException(
             status_code=404,
             detail=f"Wallet '{data.wallet_name}', not found"
-        )
-    # Проверяем что сумма положительная
-    if data.amount <= 0:
-        raise HTTPException(
-            status_code=400,
-            detail="Amoun must be positive"
         )
     # Проверяем достаточно ли средств в кошельке
     if BALANCE[data.wallet_name] < data.amount:
