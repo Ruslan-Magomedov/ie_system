@@ -1,4 +1,9 @@
-BALANCE = {}
+BALANCE: dict[str, float] = {}
+
+
+
+def get_all_wallets() -> dict[str, float]:
+    return BALANCE.copy()
 
 
 
@@ -21,4 +26,10 @@ def add_expense(wallet: str, amount: float) -> float:
 
 
 def get_wallet_balance_by_name(wallet: str) -> float:
+    return BALANCE[wallet]
+
+
+
+def create_wallet(wallet: str, initial_balance: float) -> float:
+    BALANCE[wallet] = initial_balance
     return BALANCE[wallet]

@@ -1,36 +1,31 @@
 from fastapi.exceptions import HTTPException
 
 from src.schemas import CreateWalletRequest
+from src.repository import wallets as wallet_rep
+from src.schemas import CreateWalletRequest
 
 
 
 def get_wallet(wallet_name: str | None = None):
-    # Если имя кошелько не указанно - возвращаем общий баланс
     if wallet_name is None:
-        return {"total_balance": sum(BALANCE.values())}
-    # Проверяем существует ли запрашиваемый кошелек
-    if wallet_name not in BALANCE:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Wallet '{wallet_name}', not found"
-        )
-    # Возвращаем баланс конкретного кошелька
-    return {"wallet": wallet_name, "balance": BALANCE[wallet_name]}
+        wallet = wallet_rep.get_all_wallets()
+        return {"total_balance": sum(wallet.values())}
+    
+    if not wallet_rep.is_wallet_exist(wallet_name):
+        raise HTTPException(status_code=404, detail=f"Wallet '{wallet_name}', not found")
+
+    return {"wallet": wallet_name, "balance": wallet_rep.get_wallet_balance_by_name(wallet_name)}
 
 
 
 def crate_wallet(wallet: CreateWalletRequest):
-    # Проверяем существует ли такой кошелек
-    if wallet.name in BALANCE:
-        raise HTTPException(
-            status_code=400,
-            detail=f"wallet '{wallet.name}' already exists"
-        )
-    # Создаем новый кошелек с начальным балансом
-    BALANCE[wallet.name] = wallet.initial_balance
-    # Возвращаем информацию о кошельке
+    if wallet_rep.is_wallet_exist(wallet.name):
+        raise HTTPException(status_code=400, detail=f"wallet '{wallet.name}' already exists")
+
+    new_balance = wallet_rep.create_wallet(wallet.name, wallet.initial_balance)
+
     return {
         "message": f"Wallet '{wallet.name}' created",
         "wallet": wallet.name,
-        "balance": BALANCE[wallet.name]
+        "balance": new_balance
     }
