@@ -1,7 +1,9 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
 
-from services import wallets as wallet_service
-from schemas import CreateWalletRequest
+from src.dependency import get_db
+from src.services import wallets as wallet_service
+from src.schemas import CreateWalletRequest
 
 
 
@@ -10,11 +12,11 @@ router = APIRouter()
 
 
 @router.get("/balance")
-def get_balance(wallet_name: str | None = None):
-    return wallet_service.get_wallet(wallet_name=wallet_name)
+def get_balance(wallet_name: str | None = None, db: Session = Depends(get_db)):
+    return wallet_service.get_wallet(db, wallet_name=wallet_name)
 
 
 
 @router.post("/wallets")
-def crate_wallet(wallet: CreateWalletRequest):
-    return wallet_service.crate_wallet(wallet=wallet)
+def crate_wallet(wallet: CreateWalletRequest, db: Session = Depends(get_db)):
+    return wallet_service.crate_wallet(db, wallet=wallet)
